@@ -4,6 +4,7 @@ import seaborn as sb
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from numpy import ndarray
+import pandas as pd
 
 @dataclass
 class Result:
@@ -78,3 +79,25 @@ def displayTree(df, test_year=10, max_depth=3):
     plt.figure(figsize=(20, 10))
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
+
+def treeGridSearch(df, test_year=10):
+    """
+        Perform a grid search for Decision Tree model
+    """
+    train_df = df[df['year'] < test_year]
+    test_df = df[df['year'] == test_year]
+
+    X_train = train_df.drop('playoff', axis=1)
+    y_train = train_df['playoff']
+
+    X_test = test_df.drop('playoff', axis=1)
+    y_test = test_df['playoff']
+
+    max_depths = [3, 4, 5, 6, 7, 8, 9, 10]
+    results = []
+    for max_depth in max_depths:
+        model = DecisionTreeClassifier(max_depth=max_depth)
+        model.fit(X_train, y_train)
+        result = getMetrics(model, X_test, y_test)
+        results.append(result.toRow())
+    return pd.DataFrame(results, columns=['Accuracy', 'Precision', 'Recall', 'F1'], index=max_depths)
