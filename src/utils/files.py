@@ -39,7 +39,7 @@ def preparePlayersTeamsDf(df):
         Simple preparation of the players_teams data:
         - Join regular and post season stats
     """
-    merging = ['minutes', 'points', 'rebounds', 'oRebounds', 'dRebounds', 'assists', 'steals', 'blocks', 'turnovers',
+    merging = ['GP', 'minutes', 'points', 'rebounds', 'oRebounds', 'dRebounds', 'assists', 'steals', 'blocks', 'turnovers',
             'PF', 'fgAttempted', 'fgMade', 'ftAttempted', 'ftMade', 'threeAttempted', 'threeMade', 'dq']
     new_pt_df = pd.DataFrame()
 
