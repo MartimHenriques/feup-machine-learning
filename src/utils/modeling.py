@@ -1,5 +1,5 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
-from sklearn.tree import export_graphviz, plot_tree
+from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 import seaborn as sb
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
@@ -57,4 +57,24 @@ def displayResults(result : Result):
     plt.title('Confusion matrix')
     plt.ylabel('Actual label')
     plt.xlabel('Predicted label')
+    plt.show()
+
+def displayTree(df, test_year=10, max_depth=3):
+    train_df = df[df['year'] < test_year]
+    test_df = df[df['year'] == test_year]
+
+    X_train = train_df.drop('playoff', axis=1)
+    y_train = train_df['playoff']
+
+    X_test = test_df.drop('playoff', axis=1)
+    y_test = test_df['playoff']
+
+    model = DecisionTreeClassifier(max_depth=max_depth)
+    model.fit(X_train, y_train)
+
+    result = getMetrics(model, X_test, y_test)
+    displayResults(result)
+
+    plt.figure(figsize=(20, 10))
+    plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
