@@ -19,7 +19,7 @@ def prepareTeamsDf(teams_df):
         - Feature engineering
     """
     # Remove unnecessary info
-    teams_df.drop(columns=['franchID', 'lgID', 'confID', 'divID', 'seeded', 'firstRound', 'semis', 'finals', 'name'], inplace=True)
+    teams_df.drop(columns=['franchID', 'lgID', 'divID', 'seeded', 'firstRound', 'semis', 'finals', 'name'], inplace=True)
     # Remove nulls
     teams_df.drop(columns=["tmORB","tmDRB","tmTRB","opptmORB","opptmDRB","opptmTRB", 'attend', 'arena'], inplace=True)
     # Collapse wins & losses into one feature

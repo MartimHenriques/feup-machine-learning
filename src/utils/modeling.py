@@ -1,10 +1,13 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 import seaborn as sb
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from numpy import ndarray
 import pandas as pd
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 @dataclass
 class Result:
@@ -19,10 +22,21 @@ class Result:
         return [self.accuracy, self.precision, self.recall, self.f1]
 
 '''Get metrics for the prediction'''
-def getMetrics(model, testing_inputs, testing_classes) -> Result:
+def predict(model, testing_inputs, testing_classes, df) -> Result:
     model.score(testing_inputs, testing_classes)
 
-    y_pred = model.predict(testing_inputs)
+    if (hasattr(model, 'predict_proba')):
+        y_pred = model.predict_proba(testing_inputs)
+
+        df['pred'] = y_pred[:,1]
+        threshold = { 
+            'EA' : df[df['confID'] == 'EA']['pred'].nlargest(4).min(),
+            'WE' : df[df['confID'] == 'WE']['pred'].nlargest(4).min()
+            }
+
+        y_pred = df.apply(lambda row: 1 if row['pred'] >= threshold[row['confID']] else 0, axis=1)
+    else:
+        y_pred = model.predict(testing_inputs)
 
     accuracy = accuracy_score(testing_classes, y_pred)
     precision = precision_score(testing_classes, y_pred)
@@ -35,14 +49,14 @@ def runModel(df, model, test_year=10):
     train_df = df[df['year'] < test_year]
     test_df = df[df['year'] == test_year]
 
-    X_train = train_df.drop('playoff', axis=1)
+    X_train = train_df.drop(columns=['playoff', 'confID'])
     y_train = train_df['playoff']
 
-    X_test = test_df.drop('playoff', axis=1)
+    X_test = test_df.drop(columns=['playoff', 'confID'])
     y_test = test_df['playoff']
 
     model.fit(X_train, y_train)
-    return getMetrics(model, X_test, y_test)
+    return predict(model, X_test, y_test, test_df.copy())
 
 def displayResults(result : Result):
     print(f"Accuracy: {round(result.accuracy * 100, 2)}%")
@@ -64,16 +78,16 @@ def displayTree(df, test_year=10, max_depth=3):
     train_df = df[df['year'] < test_year]
     test_df = df[df['year'] == test_year]
 
-    X_train = train_df.drop('playoff', axis=1)
+    X_train = train_df.drop(columns=['playoff', 'confID'])
     y_train = train_df['playoff']
 
-    X_test = test_df.drop('playoff', axis=1)
+    X_test = test_df.drop(columns=['playoff', 'confID'])
     y_test = test_df['playoff']
 
     model = DecisionTreeClassifier(max_depth=max_depth)
     model.fit(X_train, y_train)
 
-    result = getMetrics(model, X_test, y_test)
+    result = predict(model, X_test, y_test, test_df.copy())
     displayResults(result)
 
     plt.figure(figsize=(20, 10))
@@ -87,17 +101,24 @@ def treeGridSearch(df, test_year=10):
     train_df = df[df['year'] < test_year]
     test_df = df[df['year'] == test_year]
 
-    X_train = train_df.drop('playoff', axis=1)
+    X_train = train_df.drop(columns=['playoff', 'confID'])
     y_train = train_df['playoff']
 
-    X_test = test_df.drop('playoff', axis=1)
+    X_test = test_df.drop(columns=['playoff', 'confID'])
     y_test = test_df['playoff']
 
-    max_depths = [3, 4, 5, 6, 7, 8, 9, 10]
-    results = []
-    for max_depth in max_depths:
-        model = DecisionTreeClassifier(max_depth=max_depth)
-        model.fit(X_train, y_train)
-        result = getMetrics(model, X_test, y_test)
-        results.append(result.toRow())
-    return pd.DataFrame(results, columns=['Accuracy', 'Precision', 'Recall', 'F1'], index=max_depths)
+    # grid search trees hyperparamet
+    param_grid = {
+        'criterion': ['gini', 'entropy'],
+        'max_depth': range(1, 10),
+        'min_samples_split': range(2, 10),
+        'min_samples_leaf': range(1, 10),
+        'max_features': ['auto', 'sqrt', 'log2']
+    }
+    model = DecisionTreeClassifier()
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid.fit(X_train, y_train)
+    print(grid.best_params_)
+    print(grid.best_score_)
+    print(grid.best_estimator_)
+    return grid
