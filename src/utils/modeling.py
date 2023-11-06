@@ -3,6 +3,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.svm import SVC
 import seaborn as sb
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
@@ -96,7 +97,7 @@ def displayTree(df, test_year=10, max_depth=3):
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
 
-def treeGridSearch(df, test_year=10):
+def DecisionTree_GridSearch(df, test_year=10):
     """
         Perform a grid search for Decision Tree model
     """
@@ -162,14 +163,41 @@ def NeuralNet_GridSearch(df, test_year=10):
 
     # grid search Random Forest's hyperparameters
     param_grid = {
-        'hidden_layer_sizes': [(100, 100, 100), (100, 100), (100, 100, 100, 100)],
+        'hidden_layer_sizes': [(5, 2), (100, 100, 100), (100, 100), (100, 100, 100, 100)],
         'activation': ['tanh', 'relu'],
         'solver': ['lbfgs', 'sgd', 'adam'],
-        'alpha': [0.0001, 0.05],
+        'alpha': [0.000001, 0.05],
         'learning_rate': ['constant', 'adaptive'],
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid.fit(X_train, y_train)
+    print(grid.best_params_)
+    print(grid.best_score_)
+    print(grid.best_estimator_)
+    return grid
+
+
+def SVM_GridSearch(df, test_year=10):
+    """
+        Perform a grid search for a SVM model
+    """
+    train_df = df[df['year'] < test_year]
+
+    X_train = train_df.drop(columns=['playoff'] + (['confID'] if 'confID' in train_df.columns else []))
+    y_train = train_df['playoff']
+
+    # grid search Random Forest's hyperparameters
+    param_grid = {
+        'C': range(0.0,2.2,0.2),
+        'kernel': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
+        'degree': range(0,6),
+        'gamma': ['scale', 'auto'],
+        'shrinking': [False,True],
+        'probability': [False,True]
+    }
+    model = SVC()
     grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
     grid.fit(X_train, y_train)
     print(grid.best_params_)
