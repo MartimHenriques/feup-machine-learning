@@ -1,5 +1,5 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, BaseCrossValidator
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -98,6 +98,15 @@ def displayTree(df, test_year=10, max_depth=3):
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
 
+# Define a custom data splitting function by creating a custom cross-validator class
+class CustomDataSplitter(BaseCrossValidator):
+    def split(self, X, y=None, groups=None):
+        test_year = X['year'].max()
+        train_df = X[X['year'] < test_year]
+        split_index = len(train_df)
+        yield list(range(split_index)), list(range(split_index, len(X)))
+
+
 def DecisionTree_GridSearch(df, test_year=10):
     """
         Perform a grid search for Decision Tree model
@@ -120,7 +129,7 @@ def DecisionTree_GridSearch(df, test_year=10):
         'max_features': ['auto', 'sqrt', 'log2']
     }
     model = DecisionTreeClassifier()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
+    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -146,7 +155,7 @@ def RandomForest_GridSearch(df, test_year=10):
         # 'min_samples_leaf': range(1, 10),
     }
     model = RandomForestClassifier()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
+    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -172,7 +181,7 @@ def NeuralNet_GridSearch(df, test_year=10):
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
+    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -197,7 +206,7 @@ def SVM_GridSearch(df, test_year=10):
         'shrinking':[False,True]
     }
     model = SVC()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
+    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
