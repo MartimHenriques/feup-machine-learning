@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from dataclasses import dataclass
 from numpy import ndarray
 import pandas as pd
+import numpy as np
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -119,7 +120,7 @@ def DecisionTree_GridSearch(df, test_year=10):
         'max_features': ['auto', 'sqrt', 'log2']
     }
     model = DecisionTreeClassifier()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -145,7 +146,7 @@ def RandomForest_GridSearch(df, test_year=10):
         # 'min_samples_leaf': range(1, 10),
     }
     model = RandomForestClassifier()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -171,7 +172,7 @@ def NeuralNet_GridSearch(df, test_year=10):
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
@@ -190,15 +191,13 @@ def SVM_GridSearch(df, test_year=10):
 
     # grid search Random Forest's hyperparameters
     param_grid = {
-        'C': range(0.0,2.2,0.2),
-        'kernel': ['linear', 'poly', 'rbf', 'sigmoid', 'precomputed'],
-        'degree': range(0,6),
-        'gamma': ['scale', 'auto'],
-        'shrinking': [False,True],
-        'probability': [False,True]
+        'C': np.arange(0.2, 1.8, 0.2),
+        'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+        'probability': [False,True],
+        'shrinking':[False,True]
     }
     model = SVC()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1, scoring='accuracy')
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
