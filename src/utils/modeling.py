@@ -100,12 +100,29 @@ def displayTree(df, test_year=10, max_depth=3):
 
 # Define a custom data splitting function by creating a custom cross-validator class
 class CustomDataSplitter(BaseCrossValidator):
+    def get_n_splits(self, X=None, y=None, groups=None):
+        # Return the number of splits you want to create
+        return 1  # In this example, we create only one split
     def split(self, X, y=None, groups=None):
         test_year = X['year'].max()
-        train_df = X[X['year'] < test_year]
-        split_index = len(train_df)
+        # Append all rows with 'year' equal to test_year to the end of the DataFrame
+        Y = X[X['year'] == test_year]
+        X = Y.append(X[X['year'] < test_year])
+        # Create beforeYear_df using the updated X
+        # beforeYear_df = X[X['year'] < test_year]
+
+        # Split the data into training and testing subsets based on 'year'
+        split_index = len(Y)
+        print(X['year'])
         yield list(range(split_index)), list(range(split_index, len(X)))
 
+
+        # test_year = X['year'].max()
+        # print(X['year'])
+        # print(test_year)
+        # beforeYear_df = X[X['year'] < test_year]
+        # split_index = len(beforeYear_df)
+        # yield list(range(split_index)), list(range(split_index, len(X)))
 
 def DecisionTree_GridSearch(df, test_year=10):
     """
