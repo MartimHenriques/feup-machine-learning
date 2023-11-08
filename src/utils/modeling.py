@@ -1,5 +1,5 @@
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
-from sklearn.model_selection import GridSearchCV, BaseCrossValidator
+from sklearn.model_selection import GridSearchCV, BaseCrossValidator, ParameterGrid
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
@@ -98,70 +98,38 @@ def displayTree(df, test_year=10, max_depth=3):
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
 
-# Define a custom data splitting function by creating a custom cross-validator class
-class CustomDataSplitter(BaseCrossValidator):
-    def get_n_splits(self, X=None, y=None, groups=None):
-        # Return the number of splits you want to create
-        return 1  # In this example, we create only one split
-    def split(self, X, y=None, groups=None):
-        test_year = X['year'].max()
-        # Append all rows with 'year' equal to test_year to the end of the DataFrame
-        Y = X[X['year'] == test_year]
-        X = Y.append(X[X['year'] < test_year])
-        # Create beforeYear_df using the updated X
-        # beforeYear_df = X[X['year'] < test_year]
-
-        # Split the data into training and testing subsets based on 'year'
-        split_index = len(Y)
-        print(X['year'])
-        yield list(range(split_index)), list(range(split_index, len(X)))
-
-
-        # test_year = X['year'].max()
-        # print(X['year'])
-        # print(test_year)
-        # beforeYear_df = X[X['year'] < test_year]
-        # split_index = len(beforeYear_df)
-        # yield list(range(split_index)), list(range(split_index, len(X)))
+def customGridSearch(df,model,param_grid, test_year):
+    best_score = 0.0
+    best_grid = None
+    for g in ParameterGrid(param_grid):
+        model.set_params(**g)
+        res = runModel(df,model,test_year)
+        # save if best
+        if(best_score < res.accuracy):
+            best_score = res.accuracy
+            best_grid = g
+    return best_grid, best_score
 
 def DecisionTree_GridSearch(df, test_year=10):
     """
         Perform a grid search for Decision Tree model
     """
-    train_df = df[df['year'] < test_year]
-    test_df = df[df['year'] == test_year]
-
-    X_train = train_df.drop(columns=['playoff'] + (['confID'] if 'confID' in train_df.columns else []))
-    y_train = train_df['playoff']
-
-    X_test = test_df.drop(columns=['playoff'] + (['confID'] if 'confID' in test_df.columns else []))
-    y_test = test_df['playoff']
-
     # grid search trees hyperparamet
     param_grid = {
         'criterion': ['gini', 'entropy'],
         'max_depth': range(1, 10),
         'min_samples_split': range(2, 10),
         'min_samples_leaf': range(1, 10),
-        'max_features': ['auto', 'sqrt', 'log2']
+        'max_features': ['sqrt', 'log2']
     }
-    model = DecisionTreeClassifier()
-    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
-    grid.fit(X_train, y_train)
-    print(grid.best_params_)
-    print(grid.best_score_)
-    print(grid.best_estimator_)
-    return grid
+    model = DecisionTreeClassifier(random_state=42)
+    best_grid,_ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    return best_grid
 
 def RandomForest_GridSearch(df, test_year=10):
     """
         Perform a grid search for a Random Forest model
     """
-    train_df = df[df['year'] < test_year]
-
-    X_train = train_df.drop(columns=['playoff'] + (['confID'] if 'confID' in train_df.columns else []))
-    y_train = train_df['playoff']
-
     # grid search Random Forest's hyperparameters
     param_grid = {
         'n_estimators': [5*x for x in range(1,10)],
@@ -171,23 +139,14 @@ def RandomForest_GridSearch(df, test_year=10):
         'min_samples_split': range(2, 10),
         # 'min_samples_leaf': range(1, 10),
     }
-    model = RandomForestClassifier()
-    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
-    grid.fit(X_train, y_train)
-    print(grid.best_params_)
-    print(grid.best_score_)
-    print(grid.best_estimator_)
-    return grid
+    model = RandomForestClassifier(random_state=42)
+    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    return best_grid
 
 def NeuralNet_GridSearch(df, test_year=10):
     """
         Perform a grid search for a Neural Net model
     """
-    train_df = df[df['year'] < test_year]
-
-    X_train = train_df.drop(columns=['playoff'] + (['confID'] if 'confID' in train_df.columns else []))
-    y_train = train_df['playoff']
-
     # grid search Random Forest's hyperparameters
     param_grid = {
         'hidden_layer_sizes': [(5, 2), (100, 100, 100), (100, 100), (100, 100, 100, 100)],
@@ -198,23 +157,14 @@ def NeuralNet_GridSearch(df, test_year=10):
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
-    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
-    grid.fit(X_train, y_train)
-    print(grid.best_params_)
-    print(grid.best_score_)
-    print(grid.best_estimator_)
-    return grid
+    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    return best_grid
 
 
 def SVM_GridSearch(df, test_year=10):
     """
         Perform a grid search for a SVM model
     """
-    train_df = df[df['year'] < test_year]
-
-    X_train = train_df.drop(columns=['playoff'] + (['confID'] if 'confID' in train_df.columns else []))
-    y_train = train_df['playoff']
-
     # grid search Random Forest's hyperparameters
     param_grid = {
         'C': np.arange(0.2, 1.8, 0.2),
@@ -222,10 +172,6 @@ def SVM_GridSearch(df, test_year=10):
         'probability': [False,True],
         'shrinking':[False,True]
     }
-    model = SVC()
-    grid = GridSearchCV(model, param_grid, cv=CustomDataSplitter(), verbose=1, n_jobs=-1, scoring='accuracy')
-    grid.fit(X_train, y_train)
-    print(grid.best_params_)
-    print(grid.best_score_)
-    print(grid.best_estimator_)
-    return grid
+    model = SVC(random_state=42)
+    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    return best_grid
