@@ -9,16 +9,16 @@ def getPer(df, pt_df, teams_df):
             pt_df (DataFrame): The dataframe containing the players_teams data
             teams_df (DataFrame): The dataframe containing the teams data
     """
-    pt_df = pd.merge(pt_df, teams_df[['year', 'tmID', 'asts', 'fgm']], on=['year', 'tmID'], how='left')
-    pt_df.rename(columns={'asts': 't_asts', 'fgm': 't_fgm'}, inplace=True)
+    pt_df = pd.merge(pt_df, teams_df[['year', 'tmID', 'o_asts', 'o_fgm']], on=['year', 'tmID'], how='left')
+    pt_df.rename(columns={'o_asts': 't_asts', 'o_fgm': 't_fgm'}, inplace=True)
 
     # Get league stats (yearly)
     for index, row in pt_df.iterrows():
         # Assists
-        lg_asts = teams_df[(teams_df['year'] == row['year'])]['asts'].sum()
+        lg_asts = teams_df[(teams_df['year'] == row['year'])]['o_asts'].sum()
         pt_df.at[index, 'lg_asts'] = lg_asts
         # Field Goals Made
-        lg_fgm = teams_df[(teams_df['year'] == row['year'])]['fgm'].sum()
+        lg_fgm = teams_df[(teams_df['year'] == row['year'])]['o_fgm'].sum()
         pt_df.at[index, 'lg_fgm'] = lg_fgm
         # Field Goals Attempted
         lg_fga = pt_df[(pt_df['year'] == row['year'])]['fgAttempted'].sum()
@@ -47,7 +47,8 @@ def getPer(df, pt_df, teams_df):
 
 
     # Make PER stats for each player
-    df['uPER'] = 1 / pt_df['minutes'] * (
+    #df['uPER'] = (1 / pt_df['minutes']) * (
+    df['uPER'] = (1 ) * (
         pt_df['threeMade'] + (2/3) * pt_df['assists'] 
         + (2 - pt_df['factor'] * (pt_df['t_asts'] / pt_df['t_fgm'])) * pt_df['fgMade']
         + pt_df['ftMade'] * 0.5 * (1 + (1 - (pt_df['t_asts'] / pt_df['t_fgm'])) + 2/3 * (pt_df['t_asts'] / pt_df['t_fgm']))
@@ -73,6 +74,7 @@ def getEFF(df, pt_df):
     """
     # Make EFF stats for each player
     df['EFF'] = (1 / pt_df['minutes']) * (
+    #df['EFF'] = (1) * (
         (pt_df['points']) + pt_df['rebounds'] + pt_df['assists'] + pt_df['steals'] + pt_df['blocks']
         - (pt_df['fgAttempted'] - pt_df['fgMade']) - (pt_df['ftAttempted'] - pt_df['ftMade']) - pt_df['turnovers']
         )

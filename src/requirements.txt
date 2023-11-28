@@ -5,3 +5,5 @@ seaborn==0.11.1
 scikit-learn==0.24.2
 imbalanced-learn==0.8.1
 graphviz
+statsmodels
+scipy

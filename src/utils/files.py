@@ -28,10 +28,6 @@ def prepareTeamsDf(teams_df):
     # Clean up rebounds
     teams_df.drop(columns=['o_oreb', 'o_dreb', 'd_dreb', 'd_oreb'], inplace=True)
 
-    joining = ["fgm","fga","ftm","fta","3pm","3pa","reb","asts","pf","stl","to","blk","pts"]
-    for col in joining:
-        teams_df[col] = teams_df['o_' + col] + teams_df['d_' + col]
-        teams_df.drop(columns=['o_' + col, 'd_' + col], inplace=True)
     return teams_df
 
 def preparePlayersTeamsDf(df):
@@ -53,3 +49,10 @@ def preparePlayersTeamsDf(df):
     for col in ['playerID', 'year', 'tmID']:
         new_pt_df[col] = df[col]
     return new_pt_df
+
+def prepareCoachesDf(coaches_df):
+    # Collapse wins & losses into one feature
+    coaches_df['coachWLRatio'] = (coaches_df['won'] + coaches_df['post_wins']) / (coaches_df['lost'] + coaches_df['post_losses'])
+    # Remove unnecessary info
+    coaches_df.drop(columns=['lgID', 'stint', 'won', 'lost', 'post_wins', 'post_losses'], inplace=True)
+    return coaches_df

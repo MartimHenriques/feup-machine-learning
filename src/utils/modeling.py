@@ -23,7 +23,7 @@ class Result:
 
 '''Get metrics for the prediction'''
 def predict(model, testing_inputs, testing_classes, df) -> Result:
-    model.score(testing_inputs, testing_classes)
+    model.score(testing_inputs, testing_classes) #Why?
 
     if (hasattr(model, 'predict_proba')):
         y_pred = model.predict_proba(testing_inputs)
@@ -116,7 +116,7 @@ def treeGridSearch(df, test_year=10):
         'max_features': ['auto', 'sqrt', 'log2']
     }
     model = DecisionTreeClassifier()
-    grid = GridSearchCV(model, param_grid, cv=5, verbose=1, n_jobs=-1)
+    grid = GridSearchCV(model, param_grid, cv=2, verbose=1, n_jobs=-1)
     grid.fit(X_train, y_train)
     print(grid.best_params_)
     print(grid.best_score_)
