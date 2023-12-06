@@ -98,15 +98,27 @@ def displayTree(df, test_year=10, max_depth=3):
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
 
-def customGridSearch(df,model,param_grid, test_year):
-    best_score = 0.0
+def customGridSearch(df,model,param_grid, start_test_year=4,end_test_year=10):
+    """
+        Perform a customized Grid Search with a certain model and param_grid from year 4 to 10
+    """
+    running_percentage = 0
+    best_score = -1.0
     best_grid = None
-    for g in ParameterGrid(param_grid):
+    for i,g in enumerate(ParameterGrid(param_grid)):
+        running_percentage = i/len(ParameterGrid(param_grid))
+        print(f"Grid Search is {round(running_percentage*100,2)}% done",end='\r')
         model.set_params(**g)
-        res = runModel(df,model,test_year)
+        best_avg_year_score = 0
+        for year in range(start_test_year,end_test_year+1):
+            res = runModel(df,model,year)
+            best_avg_year_score += res.accuracy
+
+        best_avg_year_score = best_avg_year_score / (end_test_year+1-start_test_year)
+
         # save if best
-        if(best_score < res.accuracy):
-            best_score = res.accuracy
+        if(best_score < best_avg_year_score):
+            best_score = best_avg_year_score
             best_grid = g
     return best_grid, best_score
 
@@ -114,7 +126,7 @@ def DecisionTree_GridSearch(df, test_year=10):
     """
         Perform a grid search for Decision Tree model
     """
-    # grid search trees hyperparamet
+    # grid search trees hyperparameters
     param_grid = {
         'criterion': ['gini', 'entropy'],
         'max_depth': range(1, 10),
@@ -123,7 +135,8 @@ def DecisionTree_GridSearch(df, test_year=10):
         'max_features': ['sqrt', 'log2']
     }
     model = DecisionTreeClassifier(random_state=42)
-    best_grid,_ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    best_grid,_ = customGridSearch(df,model,param_grid)
+    print(best_grid)
     return best_grid
 
 def RandomForest_GridSearch(df, test_year=10):
@@ -140,7 +153,8 @@ def RandomForest_GridSearch(df, test_year=10):
         # 'min_samples_leaf': range(1, 10),
     }
     model = RandomForestClassifier(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    best_grid, _ = customGridSearch(df,model,param_grid)
+    print(best_grid)
     return best_grid
 
 def NeuralNet_GridSearch(df, test_year=10):
@@ -157,7 +171,8 @@ def NeuralNet_GridSearch(df, test_year=10):
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    best_grid, _ = customGridSearch(df,model,param_grid)
+    print(best_grid)
     return best_grid
 
 
@@ -173,5 +188,6 @@ def SVM_GridSearch(df, test_year=10):
         'shrinking':[False,True]
     }
     model = SVC(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid,"accuracy", test_year)
+    best_grid, _ = customGridSearch(df,model,param_grid)
+    print(best_grid)
     return best_grid
