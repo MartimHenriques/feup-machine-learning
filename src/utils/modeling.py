@@ -2,6 +2,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precisio
 from sklearn.model_selection import GridSearchCV, BaseCrossValidator, ParameterGrid
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 import seaborn as sb
@@ -41,6 +42,8 @@ def predict(model, testing_inputs, testing_classes, df) -> Result:
         y_pred = df.apply(lambda row: 1 if row['pred'] >= threshold[row['confID']] else 0, axis=1)
     else:
         y_pred = model.predict(testing_inputs)
+
+    print(y_pred)
 
     accuracy = accuracy_score(testing_classes, y_pred)
     precision = precision_score(testing_classes, y_pred)
@@ -98,7 +101,7 @@ def displayTree(df, test_year=10, max_depth=3):
     plot_tree(model, feature_names=X_train.columns, class_names=['No', 'Yes'], filled=True)
     plt.show()
 
-def customGridSearch(df,model,param_grid, start_test_year=4,end_test_year=10):
+def customGridSearch(df,model,param_grid, metric="accuracy", start_test_year=4,end_test_year=10):
     """
         Perform a customized Grid Search with a certain model and param_grid from year 4 to 10
     """
@@ -112,7 +115,23 @@ def customGridSearch(df,model,param_grid, start_test_year=4,end_test_year=10):
         best_avg_year_score = 0
         for year in range(start_test_year,end_test_year+1):
             res = runModel(df,model,year)
-            best_avg_year_score += res.accuracy
+            match metric:
+                case "accuracy":
+                    best_avg_year_score += res.accuracy
+                    break
+                case "f1":
+                    best_avg_year_score += res.f1
+                    break
+                case "precision":
+                    best_avg_year_score += res.precision
+                    break
+                case "recall":
+                    best_avg_year_score += res.recall
+                    break
+                case "avg":
+                    avg = (res.accuracy + res.f1 + res.precision + res.recall)/4
+                    best_avg_year_score += avg
+                    break
 
         best_avg_year_score = best_avg_year_score / (end_test_year+1-start_test_year)
 
@@ -122,7 +141,7 @@ def customGridSearch(df,model,param_grid, start_test_year=4,end_test_year=10):
             best_grid = g
     return best_grid, best_score
 
-def DecisionTree_GridSearch(df, test_year=10):
+def DecisionTree_GridSearch(df, metric = "accuracy", start_test_year=4, end_test_year=10):
     """
         Perform a grid search for Decision Tree model
     """
@@ -135,11 +154,11 @@ def DecisionTree_GridSearch(df, test_year=10):
         'max_features': ['sqrt', 'log2']
     }
     model = DecisionTreeClassifier(random_state=42)
-    best_grid,_ = customGridSearch(df,model,param_grid)
+    best_grid,_ = customGridSearch(df,model,param_grid, metric, start_test_year, end_test_year)
     print(best_grid)
     return best_grid
 
-def RandomForest_GridSearch(df, test_year=10):
+def RandomForest_GridSearch(df, metric = "accuracy", start_test_year=4, end_test_year=10):
     """
         Perform a grid search for a Random Forest model
     """
@@ -153,11 +172,11 @@ def RandomForest_GridSearch(df, test_year=10):
         # 'min_samples_leaf': range(1, 10),
     }
     model = RandomForestClassifier(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid)
+    best_grid, _ = customGridSearch(df,model,param_grid, metric, start_test_year, end_test_year)
     print(best_grid)
     return best_grid
 
-def NeuralNet_GridSearch(df, test_year=10):
+def NeuralNet_GridSearch(df, metric = "accuracy", start_test_year=4, end_test_year=10):
     """
         Perform a grid search for a Neural Net model
     """
@@ -171,12 +190,12 @@ def NeuralNet_GridSearch(df, test_year=10):
         'max_iter': [5000]
     }
     model = MLPClassifier(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid)
+    best_grid, _ = customGridSearch(df,model,param_grid, metric, start_test_year, end_test_year)
     print(best_grid)
     return best_grid
 
 
-def SVM_GridSearch(df, test_year=10):
+def SVM_GridSearch(df, metric = "accuracy", start_test_year=4, end_test_year=10):
     """
         Perform a grid search for a SVM model
     """
@@ -188,6 +207,19 @@ def SVM_GridSearch(df, test_year=10):
         'shrinking':[False,True]
     }
     model = SVC(random_state=42)
-    best_grid, _ = customGridSearch(df,model,param_grid)
+    best_grid, _ = customGridSearch(df,model,param_grid, metric, start_test_year, end_test_year)
+    print(best_grid)
+    return best_grid
+
+def KNN_GridSearch(df, metric = "accuracy", start_test_year=4, end_test_year=10):
+    """
+        Perform a grid search for a KNN model
+    """
+    # grid search Random Forest's hyperparameters
+    param_grid = {'n_neighbors': list(range(1, 30)),
+                  'weights': ['uniform', 'distance'],
+                   'p' : [1,2] }
+    model = KNeighborsClassifier()
+    best_grid, _ = customGridSearch(df, model, param_grid, metric, start_test_year, end_test_year)
     print(best_grid)
     return best_grid
