@@ -32,6 +32,7 @@ def predict(model, testing_inputs, testing_classes, df) -> Result:
 
     if (hasattr(model, 'predict_proba')):
         y_pred = model.predict_proba(testing_inputs)
+        print(y_pred)
 
         df['pred'] = y_pred[:,1]
         threshold = { 
@@ -39,11 +40,20 @@ def predict(model, testing_inputs, testing_classes, df) -> Result:
             'WE' : df[df['confID'] == 'WE']['pred'].nlargest(4).min()
             }
 
-        y_pred = df.apply(lambda row: 1 if row['pred'] >= threshold[row['confID']] else 0, axis=1)
+        df.iloc[::-1]
+        conf_count = { 'EA' : 0, 'WE' : 0 }
+        print(threshold)
+        for index, row in df.iterrows():
+            if row['pred'] >= threshold[row['confID']] and conf_count[row['confID']] < 4:
+                df.at[index, 'pred'] = 1
+                conf_count[row['confID']] += 1
+            else:
+                df.at[index, 'pred'] = 0
+
+        df.iloc[::-1]
+        y_pred = df['pred']
     else:
         y_pred = model.predict(testing_inputs)
-
-    print(y_pred)
 
     accuracy = accuracy_score(testing_classes, y_pred)
     precision = precision_score(testing_classes, y_pred)
