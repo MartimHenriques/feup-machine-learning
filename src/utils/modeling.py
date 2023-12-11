@@ -28,7 +28,7 @@ class Result:
 
 '''Get metrics for the prediction'''
 def predict(model, testing_inputs, testing_classes, df) -> Result:
-    model.score(testing_inputs, testing_classes) #Why?
+    model.score(testing_inputs, testing_classes) #Why? I don't know
 
     if (hasattr(model, 'predict_proba')):
         y_pred = model.predict_proba(testing_inputs)
