@@ -1,4 +1,4 @@
-from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score,roc_curve, auc
 from sklearn.model_selection import GridSearchCV, BaseCrossValidator, ParameterGrid
 from sklearn.tree import DecisionTreeClassifier, export_graphviz, plot_tree
 from sklearn.ensemble import RandomForestClassifier
@@ -22,18 +22,36 @@ class Result:
     precision: float
     recall: float
     f1: float
+    fpr: ndarray = None
+    tpr: ndarray = None
+    y_pred_proba: ndarray = None
 
     def toRow(self): 
         return [self.accuracy, self.precision, self.recall, self.f1]
+    
+    def plot_roc_curve(self):
+        roc_auc = auc(self.fpr, self.tpr)
+        if self.fpr is not None and self.tpr is not None and roc_auc is not None:
+            plt.figure(figsize=(8, 6))
+            plt.plot(self.fpr, self.tpr, color='darkorange', lw=2, label=f'ROC curve (AUC = {roc_auc:.2f})')
+            plt.xlabel('False Positive Rate')
+            plt.ylabel('True Positive Rate')
+            plt.title('Receiver Operating Characteristic (ROC) Curve')
+            plt.legend(loc='lower right')
+            plt.show()
+
 
 '''Get metrics for the prediction'''
 def predict(model, testing_inputs, testing_classes, df) -> Result:
     model.score(testing_inputs, testing_classes) #Why? I don't know
 
+    fpr = None
+    tpr = None
     if (hasattr(model, 'predict_proba')):
-        y_pred = model.predict_proba(testing_inputs)
+        y_pred_proba = model.predict_proba(testing_inputs)[:, 1]
+        fpr, tpr, _ = roc_curve(testing_classes, y_pred_proba)
 
-        df['pred'] = y_pred[:,1]
+        df['pred'] = y_pred_proba
         threshold = { 
             'EA' : df[df['confID'] == 'EA']['pred'].nlargest(4).min(),
             'WE' : df[df['confID'] == 'WE']['pred'].nlargest(4).min()
@@ -49,7 +67,9 @@ def predict(model, testing_inputs, testing_classes, df) -> Result:
     precision = precision_score(testing_classes, y_pred)
     recall = recall_score(testing_classes, y_pred)
     f1 = f1_score(testing_classes, y_pred)
-    return Result(testing_classes, y_pred, accuracy, precision, recall, f1)
+    result = Result(testing_classes, y_pred, accuracy, precision, recall, f1,fpr, tpr)
+
+    return result
 
 '''Run a model and print results'''
 def runModel(df, model, test_year=10):
